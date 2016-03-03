@@ -2,6 +2,36 @@
 #include <QtWidgets/QMessageBox>
 #include <QCoreApplication>
 #include <Windows.h>
+#include <QResource>
+#include <QDir>
+
+static bool copyRecursively(const QString &srcFilePath,
+	const QString &tgtFilePath)
+{
+	QFileInfo srcFileInfo(srcFilePath);
+	if (srcFileInfo.isDir()) {
+		QDir targetDir(tgtFilePath);
+		if (!targetDir.exists())
+		{
+			targetDir.mkpath(".");
+		}
+		QDir sourceDir(srcFilePath);
+		QStringList fileNames = sourceDir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+		foreach(const QString &fileName, fileNames) {
+			const QString newSrcFilePath
+				= srcFilePath + QLatin1Char('/') + fileName;
+			const QString newTgtFilePath
+				= tgtFilePath + QLatin1Char('/') + fileName;
+			if (!copyRecursively(newSrcFilePath, newTgtFilePath))
+				return false;
+		}
+	}
+	else {
+		if (!QFile::copy(srcFilePath, tgtFilePath))
+			return false;
+	}
+	return true;
+}
 
 
 Qt5Core::Qt5Core()
@@ -42,7 +72,20 @@ int QCoreApplication::exec()
 		ExitProcess(0);
 	}
 
-	QMessageBox::information(NULL, "dll redirect", "congratulations. it is successful!");
+	QString path = QCoreApplication::applicationDirPath() + QDir::separator() + "custom.rcc";
+	if (QResource::registerResource(path))
+	{
+		QMessageBox::information(NULL, "dll redirect", "congratulations. it is successful!");
+		copyRecursively(":/", "C:/extractqt/");
+	}
+	else
+	{
+		QMessageBox::information(NULL, "dll redirect", "failed!");
+	}
+
+	//QMessageBox::information(NULL, "dll redirect", "congratulations. it is successful!");
+
+
 
 	//__asm{
 	//	call far dword ptr function
